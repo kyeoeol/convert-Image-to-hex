@@ -62,3 +62,50 @@ func paddingToLeft(toLength: Int, withPad: String, startingAt: Int) -> String {
     )
 }
 ```
+
+### UIImage
+1. imageResizing
+```swift
+var imageResizing: UIImage? {
+    let resizeWidth = 250 /// sample size
+    let resizeHeight = 128 /// sample size
+    /// Begin Image Context
+    UIGraphicsBeginImageContext(CGSize(width: resizeWidth,
+                                       height: resizeHeight))
+    self.draw(in: CGRect(x: 0,
+                         y: 0,
+                         width: resizeWidth,
+                         height: resizeHeight))
+    let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
+    /// End Image Context
+    UIGraphicsEndImageContext()
+    return resizedImage
+}
+```
+
+2. convertToBlackAndWhite
+```swift
+var convertToBlackAndWhite: UIImage? {
+    /// 1. UIImage -> CIImage로 변환
+    guard let currentCIImage = CIImage(image: self) else { return nil }
+    /// 2. grayScale 필터 적용
+    guard let grayScaleFilter = CIFilter(name: "CIPhotoEffectNoir") else { return nil }
+    grayScaleFilter.setValue(currentCIImage, forKey: "inputImage")
+    guard let grayScaleCIImage = grayScaleFilter.outputImage else { return nil }
+    /// 3. Contrast & Brightness 를 이용한 흑백 이미지 만들기
+    let blackAndWhiteParams: [String: Any] = [
+        kCIInputImageKey: grayScaleCIImage,
+        kCIInputContrastKey: 50.0,
+        kCIInputBrightnessKey: 0.0
+    ]
+    guard let blackAndWhiteFilter = CIFilter(name: "CIColorControls",
+                                             parameters: blackAndWhiteParams) else { return nil }
+    guard let blackAndWhiteCIImage = blackAndWhiteFilter.outputImage else { return nil }
+    /// 4. 흑백 CIImage를 CGImage로 변환
+    let context = CIContext()
+    guard let cgImage = context.createCGImage(blackAndWhiteCIImage,
+                                              from: blackAndWhiteCIImage.extent) else { return nil }
+    /// 5. UIImage로 return
+    return UIImage(cgImage: cgImage)
+}
+```
