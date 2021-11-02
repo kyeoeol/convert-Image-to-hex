@@ -64,7 +64,7 @@ func paddingToLeft(toLength: Int, withPad: String, startingAt: Int) -> String {
 ```
 
 ### UIImage
-1. imageResizing
+1. image resizing
 ```swift
 var imageResizing: UIImage? {
     let resizeWidth = 250 /// sample size
@@ -83,7 +83,7 @@ var imageResizing: UIImage? {
 }
 ```
 
-2. convertToBlackAndWhite
+2. convert to black and white
 ```swift
 var convertToBlackAndWhite: UIImage? {
     /// 1. UIImage -> CIImage로 변환
@@ -107,5 +107,61 @@ var convertToBlackAndWhite: UIImage? {
                                               from: blackAndWhiteCIImage.extent) else { return nil }
     /// 5. UIImage로 return
     return UIImage(cgImage: cgImage)
+}
+```
+
+## How to Convert
+1. extract Binary
+```swift
+func extractBinary(from image: UIImage?) -> String {
+    /// binary를 array형식으로 추출한다. (픽셀 단위로 binary를 뽑아내서 저장하기 위해)
+    var binaryArray = [String]()
+    guard let cgImage = image?.cgImage else { return "" }
+    guard let data = cgImage.dataProvider?.data else { return "" }
+    guard let bytes = CFDataGetBytePtr(data) else { return "" }
+    let bytesPerPixel = cgImage.bitsPerPixel / cgImage.bitsPerComponent
+    /// 세로(위에서 아래)로 탐색하며 바이너리를 구한다.
+    /// 가로로 탐색하려면 2개의 for문을 반대로 사용하면 된다.
+    for x in 0..<cgImage.width {
+        for y in 0..<cgImage.height {
+            let offset = (y * cgImage.bytesPerRow) + (x * bytesPerPixel)
+            if bytes[offset] == 0 {
+                binaryArray.append("0") /// 검정색은 0으로 간주
+            }
+            else {
+                binaryArray.append("1") /// 이외의 색은 1로 간주
+            }
+        }
+    }
+    /// binary를 array형식으로 추출한뒤 string으로 내보낸다.
+    return binaryArray.joined()
+}
+```
+
+2. convert to hexString
+```swift
+func convertToHexString(with binary: String) -> String {
+    var binary = binary
+    var hexArray = [String]()
+    /// binary 8개씩 가져오기
+    /// 이미지 사이즈가 250*128 이기 때문에 전체 binary 개수는 32,000개
+    /// 전체 binary를 8개씩 잘라 hex로 변환한다. 때문에 for문을 위한 범위는 0..<4000
+    for _ in 0..<4000 {
+        /// hex로 변환할 binary 추출
+        let extractBinary = binary.substring(from: 0, to: 7)
+        /// 추출한 binary 삭제
+        let startIdx = binary.index(binary.startIndex, offsetBy: 8)
+        let modifiedBinary = "\(binary[startIdx...])"
+        binary = modifiedBinary
+        /// hex 변환
+        /// 2진수 -> 16진수
+        let binaryToHex = String(Int(extractBinary, radix: 2)!, radix: 16)
+        /// padding 추가:  0F 가 F로 표현되는 경우를 방지하기 위함
+        let hex = binaryToHex.paddingToLeft(toLength: 2,
+                                            withPad: "0",
+                                            startingAt: 0)
+        hexArray.append(hex)
+    }
+    return hexArray.joined()
 }
 ```
